@@ -8,7 +8,6 @@ namespace SeeAsWee.Core
 		private MemberBuilder<T> _current;
 		private readonly MemberBuilder<T> _first;
 
-		public int CurrentFieldFirstIndex;
 
 		public ResultBuilder(T result, MemberBuilder<T> first)
 		{
@@ -17,18 +16,15 @@ namespace SeeAsWee.Core
 			_current = first;
 		}
 
-		public void NextMember(byte[] buffer, int separatorIndex)
+		public void NextMember(byte[] buffer, in int start, in int length)
 		{
-			var length = separatorIndex - CurrentFieldFirstIndex;
-			_current.SetValue(buffer, CurrentFieldFirstIndex, length - 1, _result);
+			_current.SetValue(buffer, start, length, _result);
 			_current = _current.Next;
-			CurrentFieldFirstIndex += length;
 		}
 
-		public T Complete(int offset)
+		public T Complete()
 		{
 			_current = _first;
-			CurrentFieldFirstIndex += offset;
 			return _result;
 		}
 	}

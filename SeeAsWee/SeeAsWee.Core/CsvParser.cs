@@ -32,49 +32,65 @@ namespace SeeAsWee.Core
 			}
 
 			var builder = _config.ResultBuilder;
-			builder.CurrentFieldFirstIndex = idx;
-			var newLineStarted = false;
+			var currentFieldFirstIndex = idx;
+			var newFieldStarted = false;
+			var length = 0;
 			do
 			{
 				while (idx < bytesRead)
 				{
-					newLineStarted = true;
+					newFieldStarted = true;
 					var currentByte = buffer[idx++];
 
 					if (currentByte == (byte) ',')
 					{
-						builder.NextMember(buffer, idx);
+						newFieldStarted = false;
+						length = idx - currentFieldFirstIndex;
+						builder.NextMember(buffer, currentFieldFirstIndex, length - 1);
+						currentFieldFirstIndex += length;
 					}
 
 					if (currentByte == (byte) '\r' && buffer[idx] == (byte) '\n')
 					{
-						newLineStarted = false;
-						builder.NextMember(buffer, idx);
+						newFieldStarted = false;
+						length = idx - currentFieldFirstIndex;
+						builder.NextMember(buffer, currentFieldFirstIndex, length - 1);
+						currentFieldFirstIndex += length + 1;
 						idx += 1;
-						yield return builder.Complete(1);
+						yield return builder.Complete();
 						continue;
 					}
 
 					if (currentByte == (byte) '\n')
 					{
-						newLineStarted = false;
-						builder.NextMember(buffer, idx);
-						yield return builder.Complete(0);
+						newFieldStarted = false;
+						length = idx - currentFieldFirstIndex;
+						builder.NextMember(buffer, currentFieldFirstIndex, length - 1);
+						currentFieldFirstIndex += length;
+						yield return builder.Complete();
 					}
 				}
 
-				if (newLineStarted)
+				var incomplete = 0;
+				if (newFieldStarted)
 				{
-					idx -= builder.CurrentFieldFirstIndex;
-					builder.CurrentFieldFirstIndex = 0;
+					incomplete = idx - currentFieldFirstIndex;
+					Buffer.BlockCopy(buffer, currentFieldFirstIndex, buffer, 0, incomplete);
+					idx -= currentFieldFirstIndex;
 				}
-				bytesRead = await stream.ReadAsync(buffer, idx, buffer.Length - idx, ct);
+				else
+				{
+					idx = 0;
+				}
+
+				bytesRead = await stream.ReadAsync(buffer, idx, buffer.Length - incomplete, ct);
+				currentFieldFirstIndex = 0;
 			} while (bytesRead != 0);
 
-			if (newLineStarted)
+			if (newFieldStarted)
 			{
-				builder.NextMember(buffer, idx);
-				yield return builder.Complete(0);
+				builder.NextMember(buffer, currentFieldFirstIndex, length);
+				yield return builder.Complete();
 			}
 
 			_config.ArrayPool.Return(buffer);

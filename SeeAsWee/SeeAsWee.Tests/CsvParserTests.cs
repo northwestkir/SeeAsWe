@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,8 +12,8 @@ namespace SeeAsWee.Tests
 	[TestFixture]
 	public class CsvParserTests
 	{
-		[Test]
-		public async Task SimpleTest()
+		[TestCaseSource(nameof(GetSimpleTestCases))]
+		public async Task SimpleTest(string csv, TestType[] expected, int bufferSize)
 		{
 			MemberBuilder<TestType> first = new EmptyMemberBuilder<TestType>();
 			var second = Utf8ParserMembers.ForDecimal<TestType>((it, value) => it.Field2 = value);
@@ -23,30 +24,29 @@ namespace SeeAsWee.Tests
 				Encoding = Encoding.UTF8,
 				BuildMapFromHeader = false,
 				HasHeader = true,
+				RentBytesBuffer = bufferSize,
 				ResultBuilder = new ResultBuilder<TestType>(new TestType(),first)
 			};
 			var target = new CsvParser<TestType>(config);
-			var sb = new StringBuilder()
-				.AppendLine("Field1,Field2,Field3")
-				.AppendLine("text,0.58,12");
 			await using var stream = new MemoryStream();
-			stream.Write(Encoding.UTF8.GetBytes(sb.ToString()));
+			stream.Write(Encoding.UTF8.GetBytes(csv));
 			stream.Position = 0;
 			var items = await target.Read(stream).Select(it => it.Clone()).ToListAsync();
-
-			Assert.That(items, Is.EquivalentTo(new[] {new TestType {Field1 = null, Field2 = 0.58m, Field3 = 12}}).Using<TestType>((a, b) => a.Field1 == b.Field1 && a.Field2 == b.Field2 && a.Field3 == b.Field3));
+			Assert.That(items, Is.EquivalentTo(expected).Using(new TestTypeComparer()));
 		}
-	}
 
-	public class TestType
-	{
-		public string Field1 { get; set; }
-		public decimal Field2 { get; set; }
-		public long Field3 { get; set; }
-
-		public TestType Clone()
+		private static IEnumerable<TestCaseData> GetSimpleTestCases()
 		{
-			return (TestType) MemberwiseClone();
+			var data = new TestType {Field1 = null, Field2 = 0.58m, Field3 = 12};
+			yield return new TestCaseData("Field1,Field2,Field3\r\ntext,0.58,12\r\ntext,0.58,12\r\ntext,0.58,12", new[] {data, data, data}, 32).SetArgDisplayNames("Buffer 32 ends on field separator");
+			yield return new TestCaseData("Field1,Field2,Field3\r\ntext,0.58,12\r\ntext,0.58,12\r\ntext,0.58,12\r\n", new[] {data, data, data}, 32).SetArgDisplayNames("Buffer 32 ends on field separator ends new line");
+			yield return new TestCaseData("Field1,Field2,Field3\r\ntext,00.58,12\r\ntext,0.58,12\r\ntext,0.58,12", new[] {data, data, data}, 32).SetArgDisplayNames("Buffer 32 ends before field separator");
+			yield return new TestCaseData("Field1,Field2,Field3\r\ntext,00.58,12\r\ntext,0.58,12\r\ntext,0.58,12\r\n", new[] {data, data, data}, 32).SetArgDisplayNames("Buffer 32 ends before field separator ends new line");
+			yield return new TestCaseData("Field1,Field2,Field3\r\ntex,0.58,12\r\ntext,0.58,12\r\ntext,0.58,12", new[] {data, data, data}, 32).SetArgDisplayNames("Buffer 32 ends after field separator");
+			yield return new TestCaseData("Field1,Field2,Field3\r\ntext,0.58,12\r\ntext,0.58,12\r\ntext,0.58,12\r\n", new[] {data, data, data}, 32).SetArgDisplayNames("Buffer 32 ends after field separator ends new line");
+
+			//TODO: add test where buffer ends at \r after \r and after \n
+			//TODO: add tests where new line is just \n
 		}
 	}
 }
