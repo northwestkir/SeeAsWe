@@ -9,6 +9,10 @@ namespace SeeAsWee.Core.MemberBuilders
 		{
 			return new DecimalUtf8ParserMemberBuilder<T>(setValue);
 		}
+		public static Utf8ParserMemberBuilder<T, long> ForInt<T>(Action<T,long> setValue)
+		{
+			return new LongUtf8ParserMemberBuilder<T>(setValue);
+		}
 
 		private class DecimalUtf8ParserMemberBuilder<T>:Utf8ParserMemberBuilder<T,decimal>
 		{

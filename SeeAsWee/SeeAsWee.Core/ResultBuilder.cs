@@ -10,6 +10,13 @@ namespace SeeAsWee.Core
 
 		public int CurrentFieldFirstIndex;
 
+		public ResultBuilder(T result, MemberBuilder<T> first)
+		{
+			_result = result;
+			_first = first;
+			_current = first;
+		}
+
 		public void NextMember(byte[] buffer, int separatorIndex)
 		{
 			var length = separatorIndex - CurrentFieldFirstIndex;

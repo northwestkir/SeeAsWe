@@ -23,23 +23,29 @@ namespace SeeAsWee.Core
 			var separator = (byte) _config.Separator;
 			const byte nextLineByte = (byte) '\n';
 
+			bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, ct);
 			if (_config.HasHeader)
 			{
-				bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, ct);
 				idx = _config.BuildMapFromHeader
 					? ParseHeader(bytesRead, buffer, nextLineByte, separator)
 					: ReadHeader(bytesRead, buffer, nextLineByte);
 			}
 
 			var builder = _config.ResultBuilder;
+			builder.CurrentFieldFirstIndex = idx;
+			var newLineStarted = false;
 			do
 			{
-				var newLineStarted = false;
-				bytesRead = await stream.ReadAsync(buffer, idx, buffer.Length - idx, ct);
 				while (idx < bytesRead)
 				{
 					newLineStarted = true;
 					var currentByte = buffer[idx++];
+
+					if (currentByte == (byte) ',')
+					{
+						builder.NextMember(buffer, idx);
+					}
+
 					if (currentByte == (byte) '\r' && buffer[idx] == (byte) '\n')
 					{
 						newLineStarted = false;
@@ -54,12 +60,6 @@ namespace SeeAsWee.Core
 						newLineStarted = false;
 						builder.NextMember(buffer, idx);
 						yield return builder.Complete(0);
-						continue;
-					}
-
-					if (currentByte == (byte) ',')
-					{
-						builder.NextMember(buffer, idx);
 					}
 				}
 
@@ -68,7 +68,14 @@ namespace SeeAsWee.Core
 					idx -= builder.CurrentFieldFirstIndex;
 					builder.CurrentFieldFirstIndex = 0;
 				}
+				bytesRead = await stream.ReadAsync(buffer, idx, buffer.Length - idx, ct);
 			} while (bytesRead != 0);
+
+			if (newLineStarted)
+			{
+				builder.NextMember(buffer, idx);
+				yield return builder.Complete(0);
+			}
 
 			_config.ArrayPool.Return(buffer);
 		}
