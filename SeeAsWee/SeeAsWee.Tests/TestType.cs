@@ -1,4 +1,8 @@
-﻿namespace SeeAsWee.Tests
+﻿using System;
+using System.Buffers.Text;
+using SeeAsWee.Core.MemberBuilders;
+
+namespace SeeAsWee.Tests
 {
 	public class TestType
 	{
@@ -11,6 +15,15 @@
 		public TestType Clone()
 		{
 			return (TestType) MemberwiseClone();
+		}
+	}
+
+	public class Utf8TestTypeField2MemberBuilder : MemberBuilder<TestType>
+	{
+		public override void SetValue(ReadOnlySpan<byte> data, TestType target)
+		{
+			if (Utf8Parser.TryParse(data, out decimal value, out _, '\0'))
+				target.Field2 = value;
 		}
 	}
 }

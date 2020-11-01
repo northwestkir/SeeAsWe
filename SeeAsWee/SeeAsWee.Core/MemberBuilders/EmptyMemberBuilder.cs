@@ -1,4 +1,6 @@
-﻿namespace SeeAsWee.Core.MemberBuilders
+﻿using System;
+
+namespace SeeAsWee.Core.MemberBuilders
 {
 	public class EmptyMemberBuilder<T> : MemberBuilder<T>
 	{
@@ -7,7 +9,7 @@
 			Next = this;
 		}
 
-		public override void SetValue(byte[] buffer, in int start, in int length, T result)
+		public override void SetValue(ReadOnlySpan<byte> data, T target)
 		{
 		}
 	}

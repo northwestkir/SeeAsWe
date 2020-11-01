@@ -16,9 +16,9 @@ namespace SeeAsWee.Tests
 		public async Task SimpleTest(string csv, TestType[] expected, int bufferSize)
 		{
 			MemberBuilder<TestType> first = new EmptyMemberBuilder<TestType>();
-			var second = Utf8ParserMembers.ForDecimal<TestType>((it, value) => it.Field2 = value);
+			var second = Utf8ParserMembers.Create<TestType>(nameof(TestType.Field2));
 			first.Next = second;
-			second.Next = Utf8ParserMembers.ForInt<TestType>((it, value) => it.Field3 = value);
+			second.Next = Utf8ParserMembers.Create<TestType>(nameof(TestType.Field3));
 			var config = new CsvParserConfig<TestType>
 			{
 				Encoding = Encoding.UTF8,

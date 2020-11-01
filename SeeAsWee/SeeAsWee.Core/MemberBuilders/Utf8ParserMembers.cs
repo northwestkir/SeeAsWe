@@ -1,35 +1,65 @@
-﻿using System;
+using System;
 using System.Buffers.Text;
+using System.Collections.Concurrent;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 
 namespace SeeAsWee.Core.MemberBuilders
 {
 	public static class Utf8ParserMembers
 	{
-		public static Utf8ParserMemberBuilder<T, decimal> ForDecimal<T>(Action<T,decimal> setValue)
+		private static ModuleBuilder _moduleBuilder;
+		private static readonly ConcurrentDictionary<string, Type> _createdBuilders = new ConcurrentDictionary<string, Type>();
+
+		static Utf8ParserMembers()
 		{
-			return new DecimalUtf8ParserMemberBuilder<T>(setValue);
-		}
-		public static Utf8ParserMemberBuilder<T, long> ForInt<T>(Action<T,long> setValue)
-		{
-			return new LongUtf8ParserMemberBuilder<T>(setValue);
+			var assemblyName = new AssemblyName("SeeAsWee.Core.Dynamic");
+			var builder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+			_moduleBuilder = builder.DefineDynamicModule(assemblyName.Name + ".dll");
 		}
 
-		private class DecimalUtf8ParserMemberBuilder<T>:Utf8ParserMemberBuilder<T,decimal>
+		public static MemberBuilder<T> Create<T>(string property)
 		{
-			public DecimalUtf8ParserMemberBuilder(Action<T,decimal> setValue):base(setValue)
+			var objectType = typeof(T);
+			//TODO: check if property type is supported by Utf8Parser
+			var targetProperty = objectType.GetProperty(property, BindingFlags.Instance | BindingFlags.Public);
+			var memberBuilderTypeName = $"{objectType.Name}_{targetProperty.Name}_MemberBuilder";
+			var resultType = _createdBuilders.GetOrAdd(memberBuilderTypeName, (key, arg) =>
 			{
-			}
+				var memberBuilderType = _moduleBuilder.DefineType(memberBuilderTypeName, TypeAttributes.Class, typeof(MemberBuilder<T>));
+				var setValueMethod = memberBuilderType.DefineMethod(nameof(MemberBuilder<T>.SetValue), MethodAttributes.Public | MethodAttributes.ReuseSlot | MethodAttributes.Virtual | MethodAttributes.HideBySig, CallingConventions.Standard);
+				var setValueMethodParameters = typeof(MemberBuilder<T>).GetMethod(nameof(MemberBuilder<T>.SetValue)).GetParameters();
+				var utf8ParserType = typeof(Utf8Parser);
 
-			protected override bool ParseInternal(byte[] buffer, in int start, in int length, out decimal value) => Utf8Parser.TryParse(new ReadOnlySpan<byte>(buffer, start, length), out value, out _);
-		}
+				setValueMethod.SetParameters(setValueMethodParameters.Select(it => it.ParameterType).ToArray());
+				foreach (var p in setValueMethodParameters)
+				{
+					setValueMethod.DefineParameter(p.Position + 1, p.Attributes, p.Name);
+				}
 
-		private class LongUtf8ParserMemberBuilder<T>:Utf8ParserMemberBuilder<T,long>
-		{
-			public LongUtf8ParserMemberBuilder(Action<T,long> setValue):base(setValue)
-			{
-			}
+				var il = setValueMethod.GetILGenerator();
+				var localValue = il.DeclareLocal(targetProperty.PropertyType);
+				var localBytesRead = il.DeclareLocal(typeof(int));
+				var returnLabel = il.DefineLabel();
 
-			protected override bool ParseInternal(byte[] buffer, in int start, in int length, out long value) => Utf8Parser.TryParse(new ReadOnlySpan<byte>(buffer, start, length), out value, out _);
+				il.Emit(OpCodes.Ldarg_1); //put data parameter onto stack
+				il.Emit(OpCodes.Ldloca_S, localValue); //put value parameter onto stack
+				il.Emit(OpCodes.Ldloca_S, localBytesRead); //put empty parameter onto stack
+				il.Emit(OpCodes.Ldc_I4_0);
+				var methodInfo = utf8ParserType.GetMethod(nameof(Utf8Parser.TryParse), BindingFlags.Public | BindingFlags.Static, null, new[] {typeof(ReadOnlySpan<byte>), localValue.LocalType.MakeByRefType(), localBytesRead.LocalType.MakeByRefType(), typeof(char)}, null);
+				il.EmitCall(OpCodes.Call, methodInfo, null); //call TryParse
+				il.Emit(OpCodes.Brfalse_S, returnLabel); //if TryParse == false go to returnLabel
+				il.Emit(OpCodes.Ldarg_2); //put object
+				il.Emit(OpCodes.Ldloc, localValue); //put localValue
+				il.EmitCall(OpCodes.Callvirt, targetProperty.GetSetMethod(), null);
+				il.MarkLabel(returnLabel);
+				il.Emit(OpCodes.Ret);
+				return memberBuilderType.CreateType();
+			}, 1);
+
+			//TODO: maybe we can optimize instance initialization somehow...
+			return (MemberBuilder<T>) Activator.CreateInstance(resultType);
 		}
 	}
 }
