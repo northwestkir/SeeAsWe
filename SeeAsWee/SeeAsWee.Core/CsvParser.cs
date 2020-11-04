@@ -3,16 +3,25 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using SeeAsWee.Core.MemberOrder;
 
 namespace SeeAsWee.Core
 {
 	public class CsvParser<T>
 	{
-		private readonly CsvParserConfig<T> _config;
+		private readonly CsvParserConfig _config;
+		private readonly ResultBuilder<T> _resultBuilder;
+		private readonly IMemberOrderResolver _memberOrderResolver;
 
-		public CsvParser(CsvParserConfig<T> config)
+		public CsvParser(CsvParserConfig config, ResultBuilder<T> resultBuilder) : this(config, resultBuilder, new SkippingMemberOrderResolver())
+		{
+		}
+
+		public CsvParser(CsvParserConfig config, ResultBuilder<T> resultBuilder, IMemberOrderResolver memberOrderResolver)
 		{
 			_config = config;
+			_resultBuilder = resultBuilder;
+			_memberOrderResolver = memberOrderResolver;
 		}
 
 		public async IAsyncEnumerable<T> Read(Stream stream, [EnumeratorCancellation] CancellationToken ct = default)
@@ -25,12 +34,14 @@ namespace SeeAsWee.Core
 			var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, ct);
 			if (_config.HasHeader)
 			{
-				idx = _config.BuildMapFromHeader
-					? ParseHeader(bytesRead, buffer, nextLineByte, separator)
-					: ReadHeader(bytesRead, buffer, nextLineByte);
+				var members = new List<string>();
+				idx = _memberOrderResolver.ParseHeader(bytesRead, buffer, nextLineByte, separator, members);
+				if (_config.SetMembersFromHeader)
+				{
+					_resultBuilder.ReorderMembers(members);
+				}
 			}
 
-			var builder = _config.ResultBuilder;
 			var currentFieldFirstIndex = idx;
 			var newFieldStarted = false;
 			var length = 0;
@@ -41,29 +52,33 @@ namespace SeeAsWee.Core
 					newFieldStarted = true;
 					var currentByte = buffer[idx++];
 
-					switch (currentByte)
+					if (currentByte == separator)
 					{
-						case (byte) ',':
-							newFieldStarted = false;
-							length = idx - currentFieldFirstIndex;
-							builder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length - 1));
-							currentFieldFirstIndex += length;
-							continue;
-						case (byte) '\r' when buffer[idx] == (byte) '\n':
-							newFieldStarted = false;
-							length = idx - currentFieldFirstIndex;
-							builder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length - 1));
-							currentFieldFirstIndex += length + 1;
-							idx += 1;
-							yield return builder.Complete();
-							continue;
-						case (byte) '\n':
-							newFieldStarted = false;
-							length = idx - currentFieldFirstIndex;
-							builder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length - 1));
-							currentFieldFirstIndex += length;
-							yield return builder.Complete();
-							break;
+						newFieldStarted = false;
+						length = idx - currentFieldFirstIndex;
+						_resultBuilder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length - 1));
+						currentFieldFirstIndex += length;
+						continue;
+					}
+
+					if (currentByte == (byte) '\r' && buffer[idx] == (byte) '\n')
+					{
+						newFieldStarted = false;
+						length = idx - currentFieldFirstIndex;
+						_resultBuilder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length - 1));
+						currentFieldFirstIndex += length + 1;
+						idx += 1;
+						yield return _resultBuilder.Complete();
+						continue;
+					}
+
+					if (currentByte == (byte) '\n')
+					{
+						newFieldStarted = false;
+						length = idx - currentFieldFirstIndex;
+						_resultBuilder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length - 1));
+						currentFieldFirstIndex += length;
+						yield return _resultBuilder.Complete();
 					}
 				}
 
@@ -85,52 +100,11 @@ namespace SeeAsWee.Core
 
 			if (newFieldStarted)
 			{
-				builder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length));
-				yield return builder.Complete();
+				_resultBuilder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length));
+				yield return _resultBuilder.Complete();
 			}
 
 			_config.ArrayPool.Return(buffer);
-		}
-
-		private static int ReadHeader(in int bytesRead, byte[] buffer, in byte nextLineByte)
-		{
-			var idx = 0;
-			while (idx++ < bytesRead)
-			{
-				if (buffer[idx] == nextLineByte)
-				{
-					break;
-				}
-			}
-
-			return idx + 1;
-		}
-
-		private int ParseHeader(int bytesRead, byte[] buffer, byte nextLineByte, byte separator)
-		{
-			int fieldFirstByteIdx = 0, fieldIdx = 0, idx = 0;
-			for (; idx < bytesRead; idx++)
-			{
-				if (buffer[idx] == nextLineByte)
-				{
-					MakeField(buffer, fieldFirstByteIdx, idx - fieldFirstByteIdx, fieldIdx);
-					break;
-				}
-
-				if (buffer[idx] == separator)
-				{
-					MakeField(buffer, fieldFirstByteIdx, idx - fieldFirstByteIdx, fieldIdx);
-					fieldFirstByteIdx += 1;
-					fieldIdx += 1;
-				}
-			}
-
-			return idx + 1;
-		}
-
-		private void MakeField(byte[] buffer, in int fieldFirstByteIdx, int index, in int fieldIdx)
-		{
-			throw new NotImplementedException();
 		}
 	}
 }

@@ -4,9 +4,10 @@ namespace SeeAsWee.Core.MemberBuilders
 {
 	public class EmptyMemberBuilder<T> : MemberBuilder<T>
 	{
-		public EmptyMemberBuilder()
+		public EmptyMemberBuilder(string memberName)
 		{
 			Next = this;
+			MemberName = memberName;
 		}
 
 		public override void SetValue(ReadOnlySpan<byte> data, T target)

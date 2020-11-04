@@ -12,22 +12,26 @@ namespace SeeAsWee.Tests
 	[TestFixture]
 	public class CsvParserTests
 	{
+		//TODO: add cases when there is no header
+
 		[TestCaseSource(nameof(GetSimpleTestCases))]
 		public async Task SimpleTest(string csv, TestType[] expected, int bufferSize)
 		{
-			MemberBuilder<TestType> first = new EmptyMemberBuilder<TestType>();
-			var second = Utf8ParserMembers.Create<TestType>(new Utf8ParserPropertyMetadata(nameof(TestType.Field2)));
-			first.Next = second;
-			second.Next = Utf8ParserMembers.Create<TestType>(new Utf8ParserPropertyMetadata(nameof(TestType.Field3)));
-			var config = new CsvParserConfig<TestType>
+			var memberBuilders = new[]
+			{
+				new EmptyMemberBuilder<TestType>(nameof(TestType.Field1)),
+				Utf8ParserMembers.Create<TestType>(new Utf8ParserPropertyMetadata(nameof(TestType.Field2))),
+				Utf8ParserMembers.Create<TestType>(new Utf8ParserPropertyMetadata(nameof(TestType.Field3)))
+			};
+			var resultBuilder = new ResultBuilder<TestType>(new TestType(), memberBuilders);
+
+			var config = new CsvParserConfig
 			{
 				Encoding = Encoding.UTF8,
-				BuildMapFromHeader = false,
 				HasHeader = true,
-				RentBytesBuffer = bufferSize,
-				ResultBuilder = new ResultBuilder<TestType>(new TestType(),first)
+				RentBytesBuffer = bufferSize
 			};
-			var target = new CsvParser<TestType>(config);
+			var target = new CsvParser<TestType>(config,resultBuilder);
 			await using var stream = new MemoryStream();
 			stream.Write(Encoding.UTF8.GetBytes(csv));
 			stream.Position = 0;

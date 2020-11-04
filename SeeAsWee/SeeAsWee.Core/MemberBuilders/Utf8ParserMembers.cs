@@ -50,14 +50,16 @@ namespace SeeAsWee.Core.MemberBuilders
 			}, 1);
 
 			//TODO: maybe we can optimize instance initialization somehow...
-			return (MemberBuilder<T>) Activator.CreateInstance(resultType);
+			var result = (MemberBuilder<T>) Activator.CreateInstance(resultType);
+			result.MemberName = propertyMetadata.PropertyName;
+			return result;
 		}
 
 		private static void GenerateViaUtf8Encoding(ILGenerator il, PropertyInfo targetProperty)
 		{
 			il.Emit(OpCodes.Ldarg_2);
 			var getUtf8EncodingProperty = typeof(System.Text.Encoding).GetProperty(nameof(System.Text.Encoding.UTF8), BindingFlags.Public | BindingFlags.Static);
-			if(getUtf8EncodingProperty==null)
+			if (getUtf8EncodingProperty == null)
 				throw new Exception($"{nameof(System.Text.Encoding)} doesn't have property {nameof(System.Text.Encoding.UTF8)}");
 			il.Emit(OpCodes.Call, getUtf8EncodingProperty.GetGetMethod());
 			il.Emit(OpCodes.Ldarg_1);

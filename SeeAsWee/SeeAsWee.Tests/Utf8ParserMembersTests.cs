@@ -8,6 +8,13 @@ namespace SeeAsWee.Tests
 	[TestFixture]
 	public class Utf8ParserMembersTests
 	{
+		//TODO: cover cases:
+		/*
+		 * has header, no header processing
+		 * has no header, no header processing
+		 * has header, header processing
+		 * has no header, header processing
+		 */
 		[TestCaseSource(nameof(GetCasesForSupportedTypesParsingTest))]
 		public void SupportedTypesParsingTest<T>(string value, T expected, char format)
 		{
@@ -30,7 +37,7 @@ namespace SeeAsWee.Tests
 			yield return new TestCaseData("12.8", (decimal) 12.8, defaultFormat);
 			yield return new TestCaseData("12", (int) 12, defaultFormat);
 			var newGuid = Guid.NewGuid();
-			yield return new TestCaseData(newGuid.ToString(), newGuid,defaultFormat);
+			yield return new TestCaseData(newGuid.ToString(), newGuid, defaultFormat);
 			yield return new TestCaseData("12", (sbyte) 12, defaultFormat);
 			yield return new TestCaseData("12", (short) 12, defaultFormat);
 			yield return new TestCaseData("12", (long) 12, defaultFormat);
