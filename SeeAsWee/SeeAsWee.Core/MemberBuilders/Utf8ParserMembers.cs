@@ -47,7 +47,13 @@ namespace SeeAsWee.Core.MemberBuilders
 				il.Emit(OpCodes.Ldloca_S, localValue); //put value parameter onto stack
 				il.Emit(OpCodes.Ldloca_S, localBytesRead); //put empty parameter onto stack
 				il.Emit(OpCodes.Ldc_I4, propertyMetadata.DefaultFormat);
-				var methodInfo = utf8ParserType.GetMethod(nameof(Utf8Parser.TryParse), BindingFlags.Public | BindingFlags.Static, null, new[] {typeof(ReadOnlySpan<byte>), localValue.LocalType.MakeByRefType(), localBytesRead.LocalType.MakeByRefType(), typeof(char)}, null);
+				var methodInfo = utf8ParserType.GetMethod(
+					nameof(Utf8Parser.TryParse),
+					BindingFlags.Public | BindingFlags.Static,
+					null,
+					new[] {typeof(ReadOnlySpan<byte>), localValue.LocalType.MakeByRefType(), localBytesRead.LocalType.MakeByRefType(), typeof(char)}, null);
+				if (methodInfo == null)
+					throw new Exception($"{nameof(Utf8Parser)} doesn't have {nameof(Utf8Parser.TryParse)} to parse {nameof(ReadOnlySpan<byte>)} into {localValue.LocalType}");
 				il.EmitCall(OpCodes.Call, methodInfo, null); //call TryParse
 				il.Emit(OpCodes.Brfalse_S, returnLabel); //if TryParse == false go to returnLabel
 				il.Emit(OpCodes.Ldarg_2); //put object

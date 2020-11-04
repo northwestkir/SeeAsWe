@@ -17,9 +17,9 @@ namespace SeeAsWee.Core
 			_current = first;
 		}
 
-		public void NextMember(byte[] buffer, in int start, in int length)
+		public void NextMember(in ReadOnlySpan<byte> data)
 		{
-			_current.SetValue(new ReadOnlySpan<byte>(buffer, start, length), _result);
+			_current.SetValue(data, _result);
 			_current = _current.Next;
 		}
 

@@ -46,13 +46,13 @@ namespace SeeAsWee.Core
 						case (byte) ',':
 							newFieldStarted = false;
 							length = idx - currentFieldFirstIndex;
-							builder.NextMember(buffer, currentFieldFirstIndex, length - 1);
+							builder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length - 1));
 							currentFieldFirstIndex += length;
 							continue;
 						case (byte) '\r' when buffer[idx] == (byte) '\n':
 							newFieldStarted = false;
 							length = idx - currentFieldFirstIndex;
-							builder.NextMember(buffer, currentFieldFirstIndex, length - 1);
+							builder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length - 1));
 							currentFieldFirstIndex += length + 1;
 							idx += 1;
 							yield return builder.Complete();
@@ -60,7 +60,7 @@ namespace SeeAsWee.Core
 						case (byte) '\n':
 							newFieldStarted = false;
 							length = idx - currentFieldFirstIndex;
-							builder.NextMember(buffer, currentFieldFirstIndex, length - 1);
+							builder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length - 1));
 							currentFieldFirstIndex += length;
 							yield return builder.Complete();
 							break;
@@ -85,14 +85,14 @@ namespace SeeAsWee.Core
 
 			if (newFieldStarted)
 			{
-				builder.NextMember(buffer, currentFieldFirstIndex, length);
+				builder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length));
 				yield return builder.Complete();
 			}
 
 			_config.ArrayPool.Return(buffer);
 		}
 
-		private int ReadHeader(in int bytesRead, byte[] buffer, in byte nextLineByte)
+		private static int ReadHeader(in int bytesRead, byte[] buffer, in byte nextLineByte)
 		{
 			var idx = 0;
 			while (idx++ < bytesRead)
