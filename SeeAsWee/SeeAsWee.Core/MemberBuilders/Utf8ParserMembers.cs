@@ -19,12 +19,12 @@ namespace SeeAsWee.Core.MemberBuilders
 			_moduleBuilder = builder.DefineDynamicModule(assemblyName.Name + ".dll");
 		}
 
-		public static MemberBuilder<T> Create<T>(string property)
+		public static MemberBuilder<T> Create<T>(Utf8ParserPropertyMetadata propertyMetadata)
 		{
 			var objectType = typeof(T);
 			//TODO: check if property type is supported by Utf8Parser
-			var targetProperty = objectType.GetProperty(property, BindingFlags.Instance | BindingFlags.Public);
-			var memberBuilderTypeName = $"{objectType.Name}_{targetProperty.Name}_MemberBuilder";
+			var targetProperty = objectType.GetProperty(propertyMetadata.PropertyName, BindingFlags.Instance | BindingFlags.Public);
+			var memberBuilderTypeName = $"{objectType.Name}_{targetProperty.Name}_{targetProperty.PropertyType}_MemberBuilder";
 			var resultType = _createdBuilders.GetOrAdd(memberBuilderTypeName, (key, arg) =>
 			{
 				var memberBuilderType = _moduleBuilder.DefineType(memberBuilderTypeName, TypeAttributes.Class, typeof(MemberBuilder<T>));
@@ -46,7 +46,7 @@ namespace SeeAsWee.Core.MemberBuilders
 				il.Emit(OpCodes.Ldarg_1); //put data parameter onto stack
 				il.Emit(OpCodes.Ldloca_S, localValue); //put value parameter onto stack
 				il.Emit(OpCodes.Ldloca_S, localBytesRead); //put empty parameter onto stack
-				il.Emit(OpCodes.Ldc_I4_0);
+				il.Emit(OpCodes.Ldc_I4, propertyMetadata.DefaultFormat);
 				var methodInfo = utf8ParserType.GetMethod(nameof(Utf8Parser.TryParse), BindingFlags.Public | BindingFlags.Static, null, new[] {typeof(ReadOnlySpan<byte>), localValue.LocalType.MakeByRefType(), localBytesRead.LocalType.MakeByRefType(), typeof(char)}, null);
 				il.EmitCall(OpCodes.Call, methodInfo, null); //call TryParse
 				il.Emit(OpCodes.Brfalse_S, returnLabel); //if TryParse == false go to returnLabel

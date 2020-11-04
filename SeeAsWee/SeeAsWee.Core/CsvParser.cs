@@ -17,13 +17,12 @@ namespace SeeAsWee.Core
 
 		public async IAsyncEnumerable<T> Read(Stream stream, [EnumeratorCancellation] CancellationToken ct = default)
 		{
-			int bytesRead;
 			var buffer = _config.ArrayPool.Rent(_config.RentBytesBuffer);
 			var idx = 0;
 			var separator = (byte) _config.Separator;
 			const byte nextLineByte = (byte) '\n';
 
-			bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, ct);
+			var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, ct);
 			if (_config.HasHeader)
 			{
 				idx = _config.BuildMapFromHeader
@@ -42,32 +41,29 @@ namespace SeeAsWee.Core
 					newFieldStarted = true;
 					var currentByte = buffer[idx++];
 
-					if (currentByte == (byte) ',')
+					switch (currentByte)
 					{
-						newFieldStarted = false;
-						length = idx - currentFieldFirstIndex;
-						builder.NextMember(buffer, currentFieldFirstIndex, length - 1);
-						currentFieldFirstIndex += length;
-					}
-
-					if (currentByte == (byte) '\r' && buffer[idx] == (byte) '\n')
-					{
-						newFieldStarted = false;
-						length = idx - currentFieldFirstIndex;
-						builder.NextMember(buffer, currentFieldFirstIndex, length - 1);
-						currentFieldFirstIndex += length + 1;
-						idx += 1;
-						yield return builder.Complete();
-						continue;
-					}
-
-					if (currentByte == (byte) '\n')
-					{
-						newFieldStarted = false;
-						length = idx - currentFieldFirstIndex;
-						builder.NextMember(buffer, currentFieldFirstIndex, length - 1);
-						currentFieldFirstIndex += length;
-						yield return builder.Complete();
+						case (byte) ',':
+							newFieldStarted = false;
+							length = idx - currentFieldFirstIndex;
+							builder.NextMember(buffer, currentFieldFirstIndex, length - 1);
+							currentFieldFirstIndex += length;
+							continue;
+						case (byte) '\r' when buffer[idx] == (byte) '\n':
+							newFieldStarted = false;
+							length = idx - currentFieldFirstIndex;
+							builder.NextMember(buffer, currentFieldFirstIndex, length - 1);
+							currentFieldFirstIndex += length + 1;
+							idx += 1;
+							yield return builder.Complete();
+							continue;
+						case (byte) '\n':
+							newFieldStarted = false;
+							length = idx - currentFieldFirstIndex;
+							builder.NextMember(buffer, currentFieldFirstIndex, length - 1);
+							currentFieldFirstIndex += length;
+							yield return builder.Complete();
+							break;
 					}
 				}
 

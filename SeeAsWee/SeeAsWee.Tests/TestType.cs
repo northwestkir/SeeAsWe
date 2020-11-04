@@ -22,7 +22,7 @@ namespace SeeAsWee.Tests
 	{
 		public override void SetValue(ReadOnlySpan<byte> data, TestType target)
 		{
-			if (Utf8Parser.TryParse(data, out decimal value, out _, '\0'))
+			if (Utf8Parser.TryParse(data, out decimal value, out _, 'G'))
 				target.Field2 = value;
 		}
 	}
