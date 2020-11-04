@@ -40,8 +40,7 @@ namespace SeeAsWee.Tests
 			yield return new TestCaseData("12", (ulong) 12, defaultFormat);
 			var timeSpan = new TimeSpan(09, 23, 59, 58, 987);
 			yield return new TestCaseData("09.23:59:58.987", timeSpan, defaultFormat);
-			//TODO: implement parsing into string
-			yield return new TestCaseData("09.23:59:58.987", "09.23:59:58.987", defaultFormat).Ignore("NotImplemented");
+			yield return new TestCaseData("09.23:59:58.987", "09.23:59:58.987", defaultFormat);
 		}
 
 		public class ValueHolder<T>
