@@ -21,6 +21,7 @@ namespace SeeAsWee.Core.MemberBuilders
 
 		public static MemberBuilder<T> Create<T>(Utf8ParserPropertyMetadata propertyMetadata)
 		{
+			//TODO:implement throwing an exception on parse failed if propertyMetadata is set to do so
 			var objectType = typeof(T);
 			var targetProperty = objectType.GetProperty(propertyMetadata.PropertyName, BindingFlags.Instance | BindingFlags.Public);
 			var memberBuilderTypeName = $"{objectType.Name}_{targetProperty.Name}_{targetProperty.PropertyType}_MemberBuilder";

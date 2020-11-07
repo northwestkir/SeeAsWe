@@ -24,6 +24,10 @@ namespace SeeAsWee.Core
 			_memberOrderResolver = memberOrderResolver;
 		}
 
+		//TODO:implement reading from memory stream
+		//TODO:implement reading into an array (without cloning)
+		//TODO:resolve small ArrayPool.Rent value (<512)
+
 		public async IAsyncEnumerable<T> Read(Stream stream, [EnumeratorCancellation] CancellationToken ct = default)
 		{
 			var buffer = _config.ArrayPool.Rent(_config.RentBytesBuffer);
