@@ -6,7 +6,7 @@ namespace SeeAsWee.Benchmarks
 	{
 		public static void Main(string[] args)
 		{
-			var summary = BenchmarkRunner.Run<SeeAsWeeVsCsvHelper>();
+			var summary = BenchmarkRunner.Run<SeeAsWeeVsCsv>();
 			//BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, new DebugInProcessConfig());
 		}
 	}

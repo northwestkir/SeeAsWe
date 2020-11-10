@@ -14,7 +14,7 @@ using SeeAsWee.Core.MemberOrder;
 
 namespace SeeAsWee.Benchmarks
 {
-	public class SeeAsWeeVsCsvHelper
+	public class SeeAsWeeVsCsv
 	{
 		[Benchmark(Description = nameof(CsvHelperRun))]
 		[ArgumentsSource(nameof(GetDataForCsvHelperRun))]
@@ -62,7 +62,7 @@ namespace SeeAsWee.Benchmarks
 		{
 			var headerBytes = Encoding.UTF8.GetBytes("DecimalValue,IntValue,StringValue\r\n");
 			var valueBytes = Encoding.UTF8.GetBytes("6547.325,6578,hello world\r\n");
-			var maxRows = 1_000_000;
+			const int maxRows = 1_000_000;
 			var bytes = new Memory<byte>(new byte[headerBytes.Length + maxRows * valueBytes.Length]);
 			headerBytes.CopyTo(bytes);
 			var valueSpan = new ReadOnlyMemory<byte>(valueBytes);

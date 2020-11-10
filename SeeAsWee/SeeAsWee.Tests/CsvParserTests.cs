@@ -80,6 +80,7 @@ namespace SeeAsWee.Tests
 
 			//TODO: add test where buffer ends at \r after \r and after \n
 			//TODO: add tests where new line is just \n
+			//TODO: add support of badly formatted csv
 		}
 
 		private static IEnumerable<TestCaseData> GetTestCasesForBigArrayTests()
