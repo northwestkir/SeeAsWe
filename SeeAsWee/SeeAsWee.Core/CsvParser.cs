@@ -49,9 +49,10 @@ namespace SeeAsWee.Core
 			var currentFieldFirstIndex = idx;
 			var newFieldStarted = false;
 			var length = 0;
+			var incomplete = 0;
 			do
 			{
-				while (idx < bytesRead)
+				while (idx < bytesRead + incomplete)
 				{
 					newFieldStarted = true;
 					var currentByte = buffer[idx++];
@@ -86,12 +87,12 @@ namespace SeeAsWee.Core
 					}
 				}
 
-				var incomplete = 0;
+				incomplete = 0;
 				if (newFieldStarted)
 				{
 					incomplete = idx - currentFieldFirstIndex;
 					Buffer.BlockCopy(buffer, currentFieldFirstIndex, buffer, 0, incomplete);
-					idx -= currentFieldFirstIndex;
+					idx = incomplete;
 				}
 				else
 				{

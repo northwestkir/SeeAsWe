@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeAsWee.Core", "SeeAsWee.C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeAsWee.Tests", "SeeAsWee.Tests\SeeAsWee.Tests.csproj", "{9FC55E2F-6A3C-431C-AAB6-E527D85B700C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeAsWee.Benchmarks", "SeeAsWee.Benchmarks\SeeAsWee.Benchmarks.csproj", "{4D603FCE-650A-4118-8097-82A219EA200F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{9FC55E2F-6A3C-431C-AAB6-E527D85B700C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9FC55E2F-6A3C-431C-AAB6-E527D85B700C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9FC55E2F-6A3C-431C-AAB6-E527D85B700C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D603FCE-650A-4118-8097-82A219EA200F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D603FCE-650A-4118-8097-82A219EA200F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D603FCE-650A-4118-8097-82A219EA200F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D603FCE-650A-4118-8097-82A219EA200F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
