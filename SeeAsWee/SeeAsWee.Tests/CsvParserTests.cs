@@ -26,7 +26,7 @@ namespace SeeAsWee.Tests
 				Utf8ParserMembers.Create<TestType>(new Utf8ParserPropertyMetadata(nameof(TestType.Field2))),
 				Utf8ParserMembers.Create<TestType>(new Utf8ParserPropertyMetadata(nameof(TestType.Field3)))
 			};
-			var resultBuilder = new ResultBuilder<TestType>(new TestType(), memberBuilders);
+			var factory = new DelegatingCsvParserComponentsFactory<TestType>(() => new ResultBuilder<TestType>(new TestType(), memberBuilders), () => new SkippingMemberOrderResolver());
 
 			var config = new CsvParserConfig
 			{
@@ -34,7 +34,7 @@ namespace SeeAsWee.Tests
 				HasHeader = true,
 				RentBytesBuffer = bufferSize
 			};
-			var target = new CsvParser<TestType>(config, resultBuilder);
+			var target = new CsvParser<TestType>(config, factory);
 			await using var stream = new MemoryStream();
 			stream.Write(Encoding.UTF8.GetBytes(csv));
 			stream.Position = 0;
@@ -54,13 +54,16 @@ namespace SeeAsWee.Tests
 				Separator = ',',
 				SetMembersFromHeader = true
 			};
-			var builder = new ResultBuilder<TestRecord>(new TestRecord(), new[]
+			var memberBuilders = new[]
 			{
 				Utf8ParserMembers.Create<TestRecord>(new Utf8ParserPropertyMetadata(nameof(TestRecord.IntValue))),
 				Utf8ParserMembers.Create<TestRecord>(new Utf8ParserPropertyMetadata(nameof(TestRecord.DecimalValue))),
 				Utf8ParserMembers.Create<TestRecord>(new Utf8ParserPropertyMetadata(nameof(TestRecord.StringValue))),
-			});
-			var parser = new CsvParser<TestRecord>(config, builder, new Utf8MemberOrderResolver());
+			};
+			var factory = new DelegatingCsvParserComponentsFactory<TestRecord>(
+				() => new ResultBuilder<TestRecord>(new TestRecord(), memberBuilders),
+				() => new Utf8MemberOrderResolver());
+			var parser = new CsvParser<TestRecord>(config, factory);
 			await using var stream = new MemoryStream(data);
 			var result = parser.Read(stream);
 			var rows = await result.CountAsync();
@@ -104,7 +107,7 @@ namespace SeeAsWee.Tests
 					case 10000 - 1:
 					case 100000 - 1:
 					case 1000000 - 1:
-						yield return new TestCaseData(bytes.Slice(0, headerLength + valueLength + rowNumber * valueLength).ToArray(), rowNumber+1).SetArgDisplayNames($"rowsCount={rowNumber}");
+						yield return new TestCaseData(bytes.Slice(0, headerLength + valueLength + rowNumber * valueLength).ToArray(), rowNumber + 1).SetArgDisplayNames($"rowsCount={rowNumber}");
 						break;
 				}
 			}

@@ -22,8 +22,6 @@ namespace SeeAsWee.Tests
 				memberBuilders[i] = Utf8ParserMembers.Create<TestType>(new Utf8ParserPropertyMetadata(propertiesToSet[i]));
 			}
 
-			var resultBuilder = new ResultBuilder<TestType>(new TestType(), memberBuilders);
-
 			var config = new CsvParserConfig
 			{
 				Encoding = Encoding.UTF8,
@@ -32,7 +30,7 @@ namespace SeeAsWee.Tests
 				SetMembersFromHeader = true
 			};
 
-			var target = new CsvParser<TestType>(config, resultBuilder, new Utf8MemberOrderResolver());
+			var target = new CsvParser<TestType>(config, new DelegatingCsvParserComponentsFactory<TestType>(() => new ResultBuilder<TestType>(new TestType(), memberBuilders), () => new Utf8MemberOrderResolver()));
 			await using var stream = new MemoryStream();
 			stream.Write(Encoding.UTF8.GetBytes(csv));
 			stream.Position = 0;

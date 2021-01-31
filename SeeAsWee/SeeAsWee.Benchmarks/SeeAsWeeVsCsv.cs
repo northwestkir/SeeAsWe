@@ -44,13 +44,14 @@ namespace SeeAsWee.Benchmarks
 				Separator = ',',
 				SetMembersFromHeader = true
 			};
-			var builder = new ResultBuilder<TestRecord>(new TestRecord(), new[]
+			var memberBuilders = new[]
 			{
 				Utf8ParserMembers.Create<TestRecord>(new Utf8ParserPropertyMetadata(nameof(TestRecord.IntValue))),
 				Utf8ParserMembers.Create<TestRecord>(new Utf8ParserPropertyMetadata(nameof(TestRecord.DecimalValue))),
 				Utf8ParserMembers.Create<TestRecord>(new Utf8ParserPropertyMetadata(nameof(TestRecord.StringValue))),
-			});
-			var parser = new CsvParser<TestRecord>(config, builder, new Utf8MemberOrderResolver());
+			};
+
+			var parser = new CsvParser<TestRecord>(config, new DelegatingCsvParserComponentsFactory<TestRecord>(() => new ResultBuilder<TestRecord>(new TestRecord(), memberBuilders), () => new Utf8MemberOrderResolver()));
 			await using var stream = new MemoryStream(data);
 			var result = parser.Read(stream);
 			await foreach (var r in result)
@@ -73,17 +74,18 @@ namespace SeeAsWee.Benchmarks
 				valueSpan.CopyTo(bytes.Slice(headerLength + rowNumber * valueLength, valueLength));
 				switch (rowNumber)
 				{
-					case 100-1:
-					case 1000-1:
-					case 10000-1:
-					case 100000-1:
-					case 1000000-1:
+					case 100 - 1:
+					case 1000 - 1:
+					case 10000 - 1:
+					case 100000 - 1:
+					case 1000000 - 1:
 						yield return bytes.Slice(0, headerLength + valueLength + rowNumber * valueLength).ToArray();
 						break;
 				}
 			}
 		}
-		private sealed class TestRecordClassMap:ClassMap<TestRecord>
+
+		private sealed class TestRecordClassMap : ClassMap<TestRecord>
 		{
 			public TestRecordClassMap()
 			{
