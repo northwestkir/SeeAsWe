@@ -51,9 +51,9 @@ namespace SeeAsWee.Benchmarks
 				Utf8ParserMembers.Create<TestRecord>(new Utf8ParserPropertyMetadata(nameof(TestRecord.StringValue))),
 			};
 
-			var parser = new CsvParser<TestRecord>(config, new DelegatingCsvParserComponentsFactory<TestRecord>(() => new ResultBuilder<TestRecord>(new TestRecord(), memberBuilders), () => new Utf8MemberOrderResolver()));
+			var parser = new CsvParser<TestRecord>(config, new ResultBuilderConfig<TestRecord>(memberBuilders));
 			await using var stream = new MemoryStream(data);
-			var result = parser.Read(stream);
+			var result = parser.Read(new TestRecord(), stream);
 			await foreach (var r in result)
 			{
 			}

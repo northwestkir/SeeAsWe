@@ -30,11 +30,11 @@ namespace SeeAsWee.Tests
 				SetMembersFromHeader = true
 			};
 
-			var target = new CsvParser<TestType>(config, new DelegatingCsvParserComponentsFactory<TestType>(() => new ResultBuilder<TestType>(new TestType(), memberBuilders), () => new Utf8MemberOrderResolver()));
+			var target = new CsvParser<TestType>(config, new ResultBuilderConfig<TestType>(memberBuilders));
 			await using var stream = new MemoryStream();
 			stream.Write(Encoding.UTF8.GetBytes(csv));
 			stream.Position = 0;
-			var items = await target.Read(stream).Select(it => it.Clone()).ToListAsync();
+			var items = await target.Read(new TestType(),stream).Select(it => it.Clone()).ToListAsync();
 			Assert.That(items, Is.EquivalentTo(expected).Using(new TestTypeComparer()));
 		}
 

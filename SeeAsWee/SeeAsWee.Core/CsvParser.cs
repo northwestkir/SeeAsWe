@@ -3,41 +3,47 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using SeeAsWee.Core.MemberOrder;
 
 namespace SeeAsWee.Core
 {
 	public class CsvParser<T>
 	{
 		private readonly CsvParserConfig _config;
-		private readonly ICsvParserComponentsFactory<T> _componentsFactory;
+		private readonly ResultBuilderConfig<T> _resultBuilderConfig;
 
-		public CsvParser(CsvParserConfig config, ICsvParserComponentsFactory<T> componentsFactory)
+		public CsvParser(CsvParserConfig config, ResultBuilderConfig<T> resultBuilderConfig)
 		{
 			_config = config;
-			_componentsFactory = componentsFactory;
+			_resultBuilderConfig = resultBuilderConfig;
 		}
 
 		//TODO:implement reading from memory stream
 		//TODO:implement reading into an array (without cloning)
 		//TODO:resolve small ArrayPool.Rent value (<512)
 
-		public async IAsyncEnumerable<T> Read(Stream stream, [EnumeratorCancellation] CancellationToken ct = default)
+		public async IAsyncEnumerable<T> Read(T result, Stream stream, [EnumeratorCancellation] CancellationToken ct = default)
 		{
 			var buffer = _config.ArrayPool.Rent(_config.RentBytesBuffer);
 			var idx = 0;
 			var separator = (byte) _config.Separator;
 			const byte nextLineByte = (byte) '\n';
-			var resultBuilder = _componentsFactory.CreateResultBuilder();
+			var resultBuilder = new ResultBuilder<T>(_resultBuilderConfig);
 
 			var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, ct);
 			if (_config.HasHeader)
 			{
-				var memberOrderResolver = _componentsFactory.CreateMemberOrderResolver();
-				var members = new List<string>();
-				idx = memberOrderResolver.ParseHeader(bytesRead, buffer, nextLineByte, separator, members);
 				if (_config.SetMembersFromHeader)
 				{
+					var memberOrderResolver = new Utf8MemberOrderResolver();
+					var members = new List<string>();
+					idx = memberOrderResolver.ParseHeader(bytesRead, buffer, nextLineByte, separator, members);
 					resultBuilder.ReorderMembers(members);
+				}
+				else
+				{
+					var skipper = new SkippingMemberOrderResolver();
+					idx = skipper.ParseHeader(bytesRead, buffer, nextLineByte);
 				}
 			}
 
@@ -56,7 +62,7 @@ namespace SeeAsWee.Core
 					{
 						newFieldStarted = false;
 						length = idx - currentFieldFirstIndex;
-						resultBuilder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length - 1));
+						resultBuilder.NextMember(result,new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length - 1));
 						currentFieldFirstIndex += length;
 						continue;
 					}
@@ -65,10 +71,11 @@ namespace SeeAsWee.Core
 					{
 						newFieldStarted = false;
 						length = idx - currentFieldFirstIndex;
-						resultBuilder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length - 1));
+						resultBuilder.NextMember(result, new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length - 1));
 						currentFieldFirstIndex += length + 1;
 						idx += 1;
-						yield return resultBuilder.Complete();
+						resultBuilder.Complete();
+						yield return result;
 						continue;
 					}
 
@@ -76,9 +83,10 @@ namespace SeeAsWee.Core
 					{
 						newFieldStarted = false;
 						length = idx - currentFieldFirstIndex;
-						resultBuilder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length - 1));
+						resultBuilder.NextMember(result, new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, length - 1));
 						currentFieldFirstIndex += length;
-						yield return resultBuilder.Complete();
+						resultBuilder.Complete();
+						yield return result;
 					}
 				}
 
@@ -100,8 +108,9 @@ namespace SeeAsWee.Core
 
 			if (newFieldStarted)
 			{
-				resultBuilder.NextMember(new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, incomplete));
-				yield return resultBuilder.Complete();
+				resultBuilder.NextMember(result, new ReadOnlySpan<byte>(buffer, currentFieldFirstIndex, incomplete));
+				resultBuilder.Complete();
+				yield return result;
 			}
 
 			_config.ArrayPool.Return(buffer);

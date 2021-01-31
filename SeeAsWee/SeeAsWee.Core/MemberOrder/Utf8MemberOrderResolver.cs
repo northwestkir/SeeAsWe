@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SeeAsWee.Core.MemberOrder
 {
-	public class Utf8MemberOrderResolver : IMemberOrderResolver
+	public class Utf8MemberOrderResolver
 	{
 		public int ParseHeader(in int bytesRead, byte[] buffer, in byte nextLineByte, in byte separator, List<string> members)
 		{

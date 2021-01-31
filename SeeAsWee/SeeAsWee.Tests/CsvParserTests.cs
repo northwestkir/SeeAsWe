@@ -26,7 +26,6 @@ namespace SeeAsWee.Tests
 				Utf8ParserMembers.Create<TestType>(new Utf8ParserPropertyMetadata(nameof(TestType.Field2))),
 				Utf8ParserMembers.Create<TestType>(new Utf8ParserPropertyMetadata(nameof(TestType.Field3)))
 			};
-			var factory = new DelegatingCsvParserComponentsFactory<TestType>(() => new ResultBuilder<TestType>(new TestType(), memberBuilders), () => new SkippingMemberOrderResolver());
 
 			var config = new CsvParserConfig
 			{
@@ -34,11 +33,11 @@ namespace SeeAsWee.Tests
 				HasHeader = true,
 				RentBytesBuffer = bufferSize
 			};
-			var target = new CsvParser<TestType>(config, factory);
+			var target = new CsvParser<TestType>(config, new ResultBuilderConfig<TestType>(memberBuilders));
 			await using var stream = new MemoryStream();
 			stream.Write(Encoding.UTF8.GetBytes(csv));
 			stream.Position = 0;
-			var items = await target.Read(stream).Select(it => it.Clone()).ToListAsync();
+			var items = await target.Read(new TestType(), stream).Select(it => it.Clone()).ToListAsync();
 			Assert.That(items, Is.EquivalentTo(expected).Using(new TestTypeComparer()));
 		}
 
@@ -60,12 +59,10 @@ namespace SeeAsWee.Tests
 				Utf8ParserMembers.Create<TestRecord>(new Utf8ParserPropertyMetadata(nameof(TestRecord.DecimalValue))),
 				Utf8ParserMembers.Create<TestRecord>(new Utf8ParserPropertyMetadata(nameof(TestRecord.StringValue))),
 			};
-			var factory = new DelegatingCsvParserComponentsFactory<TestRecord>(
-				() => new ResultBuilder<TestRecord>(new TestRecord(), memberBuilders),
-				() => new Utf8MemberOrderResolver());
-			var parser = new CsvParser<TestRecord>(config, factory);
+
+			var parser = new CsvParser<TestRecord>(config, new ResultBuilderConfig<TestRecord>(memberBuilders));
 			await using var stream = new MemoryStream(data);
-			var result = parser.Read(stream);
+			var result = parser.Read(new TestRecord(),stream);
 			var rows = await result.CountAsync();
 
 			Assert.AreEqual(expectedRows, rows);

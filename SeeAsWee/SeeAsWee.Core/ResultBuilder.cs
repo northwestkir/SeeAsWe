@@ -6,35 +6,24 @@ namespace SeeAsWee.Core
 {
 	public class ResultBuilder<T>
 	{
-		private readonly T _result;
 		private MemberBuilder<T> _current;
 		private MemberBuilder<T> _first;
 
-		public ResultBuilder(T result, MemberBuilder<T>[] builders)
+		public ResultBuilder(ResultBuilderConfig<T> config)
 		{
-			_result = result;
-			_first = builders[0];
-			_current = _first;
-			for (var i = 1; i < builders.Length; i++)
-			{
-				var next = builders[i];
-				_current.Next = next;
-				_current = next;
-			}
-
-			_current = _first;
+			_current = config.Current;
+			_first = config.First;
 		}
 
-		public void NextMember(in ReadOnlySpan<byte> data)
+		public void NextMember(T instance, in ReadOnlySpan<byte> data)
 		{
-			_current.SetValue(data, _result);
+			_current.SetValue(data, instance);
 			_current = _current.Next;
 		}
 
-		public T Complete()
+		public void Complete()
 		{
 			_current = _first;
-			return _result;
 		}
 
 		public void ReorderMembers(List<string> fields)
