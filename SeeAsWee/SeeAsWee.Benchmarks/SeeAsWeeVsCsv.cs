@@ -31,9 +31,9 @@ namespace SeeAsWee.Benchmarks
 			}
 		}
 
-		[Benchmark(Description = nameof(SeeAsWeeParcerRun))]
+		[Benchmark(Description = nameof(SeeAsWeeParserRun))]
 		[ArgumentsSource(nameof(GetDataForCsvHelperRun))]
-		public async Task SeeAsWeeParcerRun(byte[] data)
+		public async Task SeeAsWeeParserRun(byte[] data)
 		{
 			CsvParserConfig config = new CsvParserConfig
 			{
