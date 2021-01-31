@@ -32,7 +32,7 @@ namespace SeeAsWee.Core
 			var builder = _first;
 			while (builder != null)
 			{
-				builders.Add(builder.MemberName, builder);
+				builders.Add(builder.FieldName, builder);
 				builder = builder.Next;
 			}
 

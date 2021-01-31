@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using NUnit.Framework;
 using SeeAsWee.Core;
 using SeeAsWee.Core.MemberBuilders;
-using SeeAsWee.Core.MemberOrder;
 
 namespace SeeAsWee.Tests
 {
@@ -66,6 +65,33 @@ namespace SeeAsWee.Tests
 			var rows = await result.CountAsync();
 
 			Assert.AreEqual(expectedRows, rows);
+		}
+
+		[Test]
+		public async Task MappedMembersTest()
+		{
+			var config = new CsvParserConfig
+			{
+				Encoding = Encoding.UTF8,
+				ArrayPool = ArrayPool<byte>.Shared,
+				HasHeader = true,
+				RentBytesBuffer = 64,
+				Separator = ',',
+				SetMembersFromHeader = true
+			};
+			var memberBuilders = new[]
+			{
+				Utf8ParserMembers.Create<TestType>(new Utf8ParserPropertyMetadata(nameof(TestType.Field1),"field1")),
+				Utf8ParserMembers.Create<TestType>(new Utf8ParserPropertyMetadata(nameof(TestType.Field2),"field2")),
+				Utf8ParserMembers.Create<TestType>(new Utf8ParserPropertyMetadata(nameof(TestType.Field3),"field3")),
+			};
+
+			var data = Encoding.UTF8.GetBytes("field1,field2,field3\r\ntext,0.58,12\r\ntext,0.58,12\r\ntext,0.58,12");
+			var parser = new CsvParser<TestType>(config, new ResultBuilderConfig<TestType>(memberBuilders));
+			await using var stream = new MemoryStream(data);
+
+			var items = await parser.Read(new TestType(), stream).Select(it => it.Clone()).ToListAsync();
+			Assert.That(items, Is.EquivalentTo(Enumerable.Repeat(new TestType {Field1 = "text", Field2 = 0.58m, Field3 = 12}, 3)).Using(new TestTypeComparer()));
 		}
 
 		private static IEnumerable<TestCaseData> GetSimpleTestCases()

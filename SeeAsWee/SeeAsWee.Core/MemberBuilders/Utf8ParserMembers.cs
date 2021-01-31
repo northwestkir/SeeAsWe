@@ -53,6 +53,7 @@ namespace SeeAsWee.Core.MemberBuilders
 			//TODO: maybe we can optimize instance initialization somehow...
 			var result = (MemberBuilder<T>) Activator.CreateInstance(resultType);
 			result.MemberName = propertyMetadata.PropertyName;
+			result.FieldName = propertyMetadata.FieldName;
 			return result;
 		}
 

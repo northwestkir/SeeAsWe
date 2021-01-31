@@ -18,7 +18,7 @@ namespace SeeAsWee.Tests
 		[TestCaseSource(nameof(GetCasesForSupportedTypesParsingTest))]
 		public void SupportedTypesParsingTest<T>(string value, T expected, char format)
 		{
-			var builder = Utf8ParserMembers.Create<ValueHolder<T>>(new Utf8ParserPropertyMetadata(nameof(ValueHolder<T>.Value), format));
+			var builder = Utf8ParserMembers.Create<ValueHolder<T>>(new Utf8ParserPropertyMetadata(nameof(ValueHolder<T>.Value), null, format));
 			var obj = new ValueHolder<T>();
 			builder.SetValue(new ReadOnlySpan<byte>(System.Text.Encoding.UTF8.GetBytes(value)), obj);
 			Assert.AreEqual(expected, obj.Value);
